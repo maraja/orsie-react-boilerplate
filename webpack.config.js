@@ -1,32 +1,79 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
+require('babel-polyfill')
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const htmlWebpackPlugin = new HtmlWebpackPlugin({ template: 'index.html' });
+const definePlugin = new webpack.DefinePlugin({
+  __DEV__: JSON.stringify(JSON.parse(process.env.NODE_ENV === 'development' || 'true'))
+});
+
+const stylesheetsLoaders = [
+  { loader: 'style-loader' },
+  { loader: 'css-loader',
+    options: {
+      modules: true,
+      localIdentName: '[path]-[local]-[hash:base64:3]',
+      sourceMap: true
+    }
+  }
+];
 
 module.exports = {
-    devServer: {
-        inline: true,
-        contentBase: './src',
-        port: 3000
-    },
-    devtool: 'cheap-module-eval-source-map',
-    entry: './dev/js/index.js',
-    module: {
-        loaders: [
-            {
-                test: /\.js$/,
-                loaders: ['babel'],
-                exclude: /node_modules/
-            },
-            {
-                test: /\.scss/,
-                loader: 'style-loader!css-loader!sass-loader'
-            }
-        ]
-    },
-    output: {
-        path: 'src',
-        filename: 'js/bundle.min.js'
-    },
-    plugins: [
-        new webpack.optimize.OccurrenceOrderPlugin()
+  context: path.join(__dirname, 'src'),
+  entry: ["babel-polyfill", './index'],
+  output: {
+    filename: '[hash].js',
+  },
+  devtool: 'source-map',
+  plugins: [htmlWebpackPlugin, definePlugin],
+  resolve: {
+    modules: ['node_modules', path.join(__dirname, 'src')]
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        loader: 'babel-loader'
+      }, {
+        test: /\.html$/,
+        loader: 'html-loader'
+      }, {
+        test: /\.css$/,
+        use: stylesheetsLoaders
+      }, {
+        test: /\.scss$/,
+        use: [...stylesheetsLoaders, {
+          loader: 'sass-loader',
+          options: {
+            sourceMap: true
+          }
+        }]
+      }, {
+        test: /\.sass$/,
+        use: [...stylesheetsLoaders, {
+          loader: 'sass-loader',
+          options: {
+            indentedSyntax: 'sass',
+            sourceMap: true
+          }
+        }]
+      }, {
+        test: /\.less$/,
+        use: [...stylesheetsLoaders, {
+          loader: 'less-loader',
+          options: {
+            sourceMap: true
+          }
+        }]
+      }
     ]
+  },
+  devServer: {
+    historyApiFallback: true,
+    proxy: {
+      '/api*': 'http://localhost:8181'
+    }
+  }
 };
